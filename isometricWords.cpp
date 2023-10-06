@@ -33,23 +33,23 @@ int main(){
 
   do{
     flag = false;
-    printf("Inserisci la taglia k dell'alfabeto (k >= 2): ");
+    printf("Insert the size k of the alphabet (k >= 2): ");
     scanf("%d", &k);
     if(k < 2){
       flag = true;
-      printf("Taglia non valida.\n");
+      printf("Size not valid.\n");
     }
   }while(flag);
 
   do{
     flag = true;
     if(k <= 10)
-    	printf("Inserisci una stringa (alfabeto {0..%d}): ", k - 1);
+    	printf("Insert a string on the alphabet {0..%d}): ", k - 1);
     else
-    	printf("Inserisci una stringa (alfabeto {0..9, A..%c}): ", 65 - 10 + k - 1);
+    	printf("Insert a string on the alphabet {0..9, A..%c}): ", 65 - 10 + k - 1);
     scanf("%s", word);
     flag = checkWord((char*) word, k);
-    if(!flag) printf("La stringa non è valida.\n");
+    if(!flag) printf("String not valid.\n");
   }while(!flag);
 
 	int n = strlen(word);
@@ -66,6 +66,17 @@ int main(){
 	  exit(EXIT_FAILURE);
 	}
 
+	//print SA array
+	printf("\n");
+	for(int i = 0; i < n; i++){
+		printf("SA[%2d]: %2d -> ", i, SA[i]);
+		for(int j = SA[i]; j < n; j++){
+			printf("%c", word[j]);
+		}
+		printf("\n");
+	}
+	printf("\n");
+
 	invSA = (int*) calloc(n, sizeof(int));
 
 	if(invSA == NULL){
@@ -75,6 +86,11 @@ int main(){
 
 	for(int i = 0; i < n; i++)
 		invSA[SA[i]] = i;
+
+	//print invSA array
+	for(int i = 0; i < n; i++)
+		printf("ISA[%2d]: %2d\n", i, invSA[i]);
+	printf("\n");
 
 	LCP = (int*) calloc(n, sizeof(int));
 
@@ -87,6 +103,11 @@ int main(){
 	  fprintf(stderr, "Error: LCP computation failed.\n");
 	  exit(EXIT_FAILURE);
 	}
+
+	//print LCP array
+	for(int i = 0; i < n; i++)
+		printf("LCP[%2d]: %2d\n", i, LCP[i]);
+	printf("\n");
 
 	int_vector<> vect(n, 0);
 
@@ -125,6 +146,8 @@ int main(){
 		exit(EXIT_FAILURE);
 	}
 
+	printf("\nnTwoErrorOverlaps: %d\n", nTwoErrorOverlaps);
+
 	string u(2*n, '0');
 	string v(2*n, '0');
 	string utmp(2*n, '0');
@@ -143,12 +166,13 @@ int main(){
       }
 		}
 
-		cout << "\nLa stringa non è isometrica" << endl;
-		cout << "I: " << I << endl;
+		cout << "\nThe string is non-Ham-isometric" << endl;
+		cout << "Index: " << I << endl << endl;
+		cout << "Witnesses:" << endl << endl;
 		cout << "u: " << u << endl;
 		cout << "v: " << v << endl;
 	}
-	else printf("\nLa stringa è isometrica\n");
+	else printf("\nThe string is Ham-isometric\n");
 
 	return 0;
 }
@@ -200,7 +224,7 @@ int twoErrorOverlaps(char *f, int *twoeolens, int *nTwoErrorOverlaps, int **alle
 
     while (d <= 2){
 
-      if (i + l < n){
+      if (l < n - i){
         int lca = LCA(l, i+l, invSA, LCP, rmq);
         l = l + lca;
       }
@@ -222,6 +246,19 @@ int twoErrorOverlaps(char *f, int *twoeolens, int *nTwoErrorOverlaps, int **alle
       }
       else break;
     }
+  }
+
+  printf("twoeolens: [ ");
+  for(int i = 0; i < n; i++)
+  	printf("%d ", twoeolens[i]);
+  printf("]\n");
+
+  printf("\nallerpos:\n");
+  for(int i = 0; i < n; i++){
+		printf("| ");
+		for(int j = 0; j < 2; j++)
+			printf("%d ", allerrpos[i][j]);
+		printf("|\n");
   }
 
   return 0;
