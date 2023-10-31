@@ -12,20 +12,21 @@ using namespace sdsl;
 #define maxNum(a, b) a > b ? a : b
 #define minNum(a, b) a < b ? a : b
 
-bool checkWord(char *word, int k);
-char *strPrefix(char *str, int r);
-int twoErrorOverlaps(char *f, int *twoeolens, int *nTwoeolens, int **allerrpos, int *LCP, int *invSA, rmq_succinct_sct<> rmq);
-int LCParray(char *text, int n, int *SA, int *ISA, int *LCP);
-int HammingDistance(char a, char b);
-int LCA(int l, int r, int *invSA, int *LCP, rmq_succinct_sct<> rmq);
-bool condPlus(char *f, int r, int i, int j, int *LCP, int *invSA, rmq_succinct_sct<> rmq);
-int stringBuilder(char *f, int prefixLenght, string *s, char *addOn);
-int witnessesConstructor(char *f, int l, int *errpos, string *u, string *v, int *LCP, int *invSA, rmq_succinct_sct<> rmq);
+bool checkWord(char*,int);
+char *strPrefix(char*, int);
+int twoErrorOverlaps(char*,int*,int*,int**,int*,int*,rmq_succinct_sct<>);
+int LCParray(char*,int,int*,int*,int*);
+int HammingDistance(char,char);
+int LCA(int,int,int*,int*,rmq_succinct_sct<>);
+bool condPlus(char*,int,int,int,int*,int*,rmq_succinct_sct<>);
+int stringBuilder(char*,int,string*,char*);
+int witnessesConstructor(char*,int,int*,string*,string*,int*,int*,
+	rmq_succinct_sct<>);
 
 int main(){
 	
 	int *SA;
-	int *invSA;
+	int *ISA;
 	int *LCP;
 	char word[128];
 	bool flag;
@@ -44,12 +45,12 @@ int main(){
   do{
     flag = true;
     if(k <= 10)
-    	printf("Insert a string on the alphabet {0..%d}): ", k - 1);
+    	printf("Insert a word on the alphabet {0..%d}): ", k - 1);
     else
-    	printf("Insert a string on the alphabet {0..9, A..%c}): ", 65 - 10 + k - 1);
+    	printf("Insert a word on the alphabet {0..9, A..%c}): ", 65 - 10 + k - 1);
     scanf("%s", word);
     flag = checkWord((char*) word, k);
-    if(!flag) printf("String not valid.\n");
+    if(!flag) printf("Word not valid.\n");
   }while(!flag);
 
 	int n = strlen(word);
@@ -66,7 +67,7 @@ int main(){
 	  exit(EXIT_FAILURE);
 	}
 
-	//print SA array
+	//print suffix array
 	printf("\n");
 	for(int i = 0; i < n; i++){
 		printf("SA[%2d]: %2d -> ", i, SA[i]);
@@ -77,19 +78,19 @@ int main(){
 	}
 	printf("\n");
 
-	invSA = (int*) calloc(n, sizeof(int));
+	ISA = (int*) calloc(n, sizeof(int));
 
-	if(invSA == NULL){
+	if(ISA == NULL){
 		fprintf(stderr, "Error: Cannot allocate memory for ISA.\n");
 	  exit(EXIT_FAILURE);
 	}
 
 	for(int i = 0; i < n; i++)
-		invSA[SA[i]] = i;
+		ISA[SA[i]] = i;
 
-	//print invSA array
+	//print inverse suffix array
 	for(int i = 0; i < n; i++)
-		printf("ISA[%2d]: %2d\n", i, invSA[i]);
+		printf("ISA[%2d]: %2d\n", i, ISA[i]);
 	printf("\n");
 
 	LCP = (int*) calloc(n, sizeof(int));
@@ -99,12 +100,12 @@ int main(){
 	  exit(EXIT_FAILURE);
 	}
 
-	if(LCParray((char*) word, n, SA, invSA, LCP) != 0){
+	if(LCParray((char*) word, n, SA, ISA, LCP) != 0){
 	  fprintf(stderr, "Error: LCP computation failed.\n");
 	  exit(EXIT_FAILURE);
 	}
 
-	//print LCP array
+	//print lcp array
 	for(int i = 0; i < n; i++)
 		printf("LCP[%2d]: %2d\n", i, LCP[i]);
 	printf("\n");
@@ -141,7 +142,7 @@ int main(){
 		}
 	}
 
-	if(twoErrorOverlaps(word, twoeolens, &nTwoErrorOverlaps, allerrpos, LCP, invSA, rmq) != 0){
+	if(twoErrorOverlaps(word,twoeolens,&nTwoErrorOverlaps,allerrpos,LCP,ISA,rmq) != 0){
 		fprintf(stderr, "Error occurred during 2-error-overlaps search.\n");
 		exit(EXIT_FAILURE);
 	}
@@ -158,7 +159,7 @@ int main(){
 		for(int i = 0; i < nTwoErrorOverlaps; i++){
 			utmp.clear();
 			vtmp.clear();
-	    witnessesConstructor(word, twoeolens[i], allerrpos[i], &utmp, &vtmp, LCP, invSA, rmq);
+	    witnessesConstructor(word,twoeolens[i],allerrpos[i],&utmp,&vtmp,LCP,ISA,rmq);
 	    if(utmp.length() < I){
         I = utmp.length();
         u = utmp;;
@@ -166,13 +167,13 @@ int main(){
       }
 		}
 
-		cout << "\nThe string is non-Ham-isometric" << endl;
+		cout << "\nThe word is non-Ham-isometric" << endl;
 		cout << "Index: " << I << endl << endl;
 		cout << "Witnesses:" << endl << endl;
 		cout << "u: " << u << endl;
 		cout << "v: " << v << endl;
 	}
-	else printf("\nThe string is Ham-isometric\n");
+	else printf("\nThe word is Ham-isometric\n");
 
 	return 0;
 }
@@ -197,7 +198,8 @@ bool checkWord(char *word, int k){
   return flag;
 }
 
-int twoErrorOverlaps(char *f, int *twoeolens, int *nTwoErrorOverlaps, int **allerrpos, int *LCP, int *invSA, rmq_succinct_sct<> rmq){
+int twoErrorOverlaps(char *f, int *twoeolens, int *nTwoErrorOverlaps,
+	int **allerrpos, int *LCP, int *ISA, rmq_succinct_sct<> rmq){
 
   int n = strlen(f);
 	int *allerrpostmp = (int*) calloc(2, sizeof(int));
@@ -225,7 +227,7 @@ int twoErrorOverlaps(char *f, int *twoeolens, int *nTwoErrorOverlaps, int **alle
     while (d <= 2){
 
       if (l < n - i){
-        int lca = LCA(l, i+l, invSA, LCP, rmq);
+        int lca = LCA(l, i+l, ISA, LCP, rmq);
         l = l + lca;
       }
 
@@ -236,7 +238,7 @@ int twoErrorOverlaps(char *f, int *twoeolens, int *nTwoErrorOverlaps, int **alle
 
       if (d == 2 && l == n - i){
         twoeolens[*nTwoErrorOverlaps] = l;
-        std::copy(allerrpostmp, allerrpostmp + nAllerrpostmp, allerrpos[*nTwoErrorOverlaps]);
+        std::copy(allerrpostmp,allerrpostmp+nAllerrpostmp,allerrpos[*nTwoErrorOverlaps]);
         *nTwoErrorOverlaps = *nTwoErrorOverlaps + 1;
       }
 
@@ -264,13 +266,14 @@ int twoErrorOverlaps(char *f, int *twoeolens, int *nTwoErrorOverlaps, int **alle
   return 0;
 }
 
-int witnessesConstructor(char *f, int l, int *errpos, string *u, string *v, int *LCP, int *invSA, rmq_succinct_sct<> rmq){
+int witnessesConstructor(char *f, int l, int *errpos, string *u, string *v, int *LCP,
+	int *ISA, rmq_succinct_sct<> rmq){
     
   int n = strlen(f);
   int r = n - l;
   int i = errpos[0];
   int j = errpos[1];
-  bool cplus = condPlus(f, r, errpos[0], errpos[1], LCP, invSA, rmq);
+  bool cplus = condPlus(f, r, errpos[0], errpos[1], LCP, ISA, rmq);
 
   if (cplus == false){
 		char *falfa = (char*) calloc(n, sizeof(char));
@@ -282,12 +285,12 @@ int witnessesConstructor(char *f, int l, int *errpos, string *u, string *v, int 
 	  fbeta[j] = f[r + j];
 
 	  if(stringBuilder(f, r, u, falfa) != 0){
-	    fprintf(stderr, "Error: building the string for witnessConstructor.\n");
+	    fprintf(stderr, "Error: building the word for witnessConstructor.\n");
 	    exit(EXIT_FAILURE);
 	  }
 
 	  if(stringBuilder(f, r, v, fbeta) != 0){
-	    fprintf(stderr, "Error: building the string for witnessConstructor.\n");
+	    fprintf(stderr, "Error: building the word for witnessConstructor.\n");
 	    exit(EXIT_FAILURE);
 	  }
   }
@@ -303,12 +306,12 @@ int witnessesConstructor(char *f, int l, int *errpos, string *u, string *v, int 
       fgamma[r/2 + j] = f[i];
 
       if(stringBuilder(f, r, u, feta) != 0){
-        fprintf(stderr, "Error: building the string for witnessConstructor.\n");
+        fprintf(stderr, "Error: building the word for witnessConstructor.\n");
         exit(EXIT_FAILURE);
       }
 
       if(stringBuilder(f, r, v, fgamma) != 0){
-        fprintf(stderr, "Error: building the string for witnessConstructor.\n");
+        fprintf(stderr, "Error: building the word for witnessConstructor.\n");
         exit(EXIT_FAILURE);
       }
 
@@ -320,7 +323,8 @@ int witnessesConstructor(char *f, int l, int *errpos, string *u, string *v, int 
   return 0;
 }
 
-bool condPlus(char *f, int r, int i, int j, int *LCP, int *invSA, rmq_succinct_sct<> rmq){
+bool condPlus(char *f, int r, int i, int j, int *LCP, int *ISA,
+	rmq_succinct_sct<> rmq){
     
 	bool cond1 = false, cond2 = false, cond3 = false;
 	int n = strlen(f);
@@ -331,7 +335,7 @@ bool condPlus(char *f, int r, int i, int j, int *LCP, int *invSA, rmq_succinct_s
 			if(f[r + i] == f[r + j]){
 				cond2 = true;
 				if(j < n){
-					if(LCA(i, j, invSA, LCP, rmq) >= r/2){
+					if(LCA(i, j, ISA, LCP, rmq) >= r/2){
 						cond3 = true;
 					}
 					else{
@@ -385,9 +389,9 @@ int HammingDistance(char a, char b){
 	return a == b ? 0 : 1;
 }
 
-int LCA(int l, int r, int *invSA, int *LCP, rmq_succinct_sct<> rmq){
-    int lmin = minNum(invSA[l], invSA[r]);
-    int rmax = maxNum(invSA[l], invSA[r]);
+int LCA(int l, int r, int *ISA, int *LCP, rmq_succinct_sct<> rmq){
+    int lmin = minNum(ISA[l], ISA[r]);
+    int rmax = maxNum(ISA[l], ISA[r]);
     return LCP[rmq(lmin + 1, rmax)];
 }
 
