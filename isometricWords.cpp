@@ -45,9 +45,9 @@ int main(){
   do{
     flag = true;
     if(k <= 10)
-    	printf("Insert a word on the alphabet {0..%d}): ", k - 1);
+    	printf("Insert a word on the alphabet {0,...,%d}): ", k - 1);
     else
-    	printf("Insert a word on the alphabet {0..9, A..%c}): ", 65 - 10 + k - 1);
+    	printf("Insert a word on the alphabet {0,...,9,A,...,%c}): ", 65 - 10 + k - 1);
     scanf("%s", word);
     flag = checkWord((char*) word, k);
     if(!flag) printf("Word not valid.\n");
@@ -167,13 +167,13 @@ int main(){
       }
 		}
 
-		cout << "\nThe word is non-Ham-isometric" << endl;
+		cout << "\nThe word is non-isometric" << endl;
 		cout << "Index: " << I << endl << endl;
 		cout << "Witnesses:" << endl << endl;
 		cout << "u: " << u << endl;
 		cout << "v: " << v << endl;
 	}
-	else printf("\nThe word is Ham-isometric\n");
+	else printf("\nThe word is isometric\n");
 
 	return 0;
 }
